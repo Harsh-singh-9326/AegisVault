@@ -1,0 +1,13 @@
+{
+  "name": "aegisvault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Focused, user-space KVM/libvirt backup platform scaffold",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/**/*.test.js",
+    "start": "npm run build && node dist/cli.js",
+    "smoke": "npm run build && node dist/cli.js smoke"
+  }
+}
