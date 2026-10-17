@@ -1,4 +1,16 @@
 // @ts-nocheck
-import { mkdir, writeFile, rm } from 'node:fs/promises'; import { join } from 'node:path'; import { MetadataRepository } from './metadata'; import { ContentAddressedRepository } from './repository'; import { BackupService } from './backup';
-async function main() { const root = process.env.AEGIS_ROOT || join(process.cwd(), '.aegisvault'); const metadata = new MetadataRepository(join(root, 'metadata.json')); const repo = new ContentAddressedRepository(join(root, 'repository')); await repo.init(); const service = new BackupService(metadata, repo, process.env.AEGIS_SECRET || 'development-only-secret'); if (process.argv[2] === 'smoke') { const fixture = join(root, 'fixture'); await rm(fixture, { recursive: true, force: true }); await mkdir(join(fixture, 'etc'), { recursive: true }); await writeFile(join(fixture, 'etc', 'vm.conf'), 'deterministic fixture\n'); const job = await service.register(fixture, `fixture-backup-${Date.now()}`); const point = await service.run(job.id); console.log(JSON.stringify({ jobId: job.id, recoveryPoint: point.id, verification: await service.verify(point.id) }, null, 2)); return; } console.log('AegisVault metadata and repository ready at', root); }
+import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { MetadataRepository } from './metadata';
+import { ContentAddressedRepository } from './repository';
+import { BackupService } from './backup';
+import { startServer } from './server';
+
+async function main() {
+  const root = process.env.AEGIS_ROOT || join(process.cwd(), '.aegisvault');
+  if (process.argv[2] === 'server') { await startServer(root); console.log(`AegisVault management server listening on ${process.env.PORT || 8080}`); return; }
+  const metadata = new MetadataRepository(join(root, 'metadata.json')); const repo = new ContentAddressedRepository(join(root, 'repository')); await repo.init(); const service = new BackupService(metadata, repo, process.env.AEGIS_SECRET || 'development-only-secret');
+  if (process.argv[2] === 'smoke') { const fixture = join(root, 'fixture'); await rm(fixture, { recursive: true, force: true }); await mkdir(join(fixture, 'etc'), { recursive: true }); await writeFile(join(fixture, 'etc', 'vm.conf'), 'deterministic fixture\n'); const job = await service.register(fixture, `fixture-backup-${Date.now()}`); const point = await service.run(job.id); console.log(JSON.stringify({ jobId: job.id, recoveryPoint: point.id, verification: await service.verify(point.id) }, null, 2)); return; }
+  console.log('AegisVault metadata and repository ready at', root);
+}
 main().catch(e => { console.error(e.message); process.exitCode = 1; });
